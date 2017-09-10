@@ -132,7 +132,7 @@ E({\bm{\ell}}) &=& Q(\bm{\ell}) \cos 2\phi_{\bm{\ell}}+U(\bm{\ell})\sin 2\phi_{\
 B({\bm{\ell}}) &=& -Q(\bm{\ell})\sin 2\phi_{\bm{\ell}} +U(\bm{\ell}) \cos 2\phi_{\bm{\ell}}  \\
 E({\bm{\ell}}) \pm i B({\bm{\ell}})&=& e^{\mp 2i\phi_{\bm{\ell}}}(Q(\bm{\ell}) \pm i U(\bm{\ell}))
 \ea
-The Q and U maps geometry can also be read trivially from this set of equation, using polarisation convention compatible with the map maker, we have
+The Q and U maps geometry can also be read trivially from this set of equation, using a polarisation convention compatible with the output of the map maker, we have
 
 \newcommand{\costwo}{\ensuremath{%
   \mathchoice{\includegraphics[height=4ex]{cos2.png}}
@@ -169,6 +169,7 @@ The estimated E (B) modes are then given by a mixture of E and B modes
 \tilde{E}({\bm{\ell}})&=&  \int d\bm{\ell'} b(\bm{\ell'}) W(\bm{\ell}-\bm{\ell'})  [  E({\bm{\ell}'}) \cos  2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})  - B({\bm{\ell}'}) \sin  2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})  ]   \nonumber \\
 \tilde{B}({\bm{\ell}}) &=&  \int d\bm{\ell'} b(\bm{\ell'}) W(\bm{\ell}-\bm{\ell'})  [  E({\bm{\ell}'}) \sin  2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})  + B({\bm{\ell}'}) \cos  2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})  ]   \nonumber \\
 \ea
+This is important. The amount of B modes in the map is much smaller than the amount of E modes. The observed B modes map will therefore be dominated by the leakage of E modes due to the window function (the partial sky coverage).
 Following what we have done in \ref{subsec:PSbasis}, we can relate the estimated power spectrum to the unbiased power spectrum using a mode coupling matrix
 \ba
  \begin{pmatrix}  \tilde{C}_{TE}({\bm{\ell}})\cr \tilde{C}_{TB}({\bm{\ell}})\cr \tilde{C}_{EE} ({\bm{\ell}})  \cr \tilde{C}_{EB} ({\bm{\ell}})  \cr \tilde{C}_{BB} ({\bm{\ell}}) \end{pmatrix} = \sum_{\bm{\ell'} }M_{\bm{\ell}, \bm{\ell'}}\begin{pmatrix}  C_{TE}({\bm{\ell}'})\cr C_{TB}({\bm{\ell}'})\cr C_{EE}({\bm{\ell}'})\cr C_{EB}({\bm{\ell}'})\cr C_{BB}({\bm{\ell}'})\cr  \end{pmatrix} 
