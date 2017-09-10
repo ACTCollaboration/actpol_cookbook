@@ -11,7 +11,6 @@
 
 \def\eop{\mathcal{E}}
 \def\bop{\mathcal{B}}
-\def\vl{\vec{\ell}}
 \def\ba{\begin{eqnarray}}
 \def\ea{\end{eqnarray}}
 \def\be{\begin{equation}}
@@ -52,23 +51,25 @@ editing/asking clarification in other people sections: \skn{Sigurd}, \TIB{Thibau
 
 \section{Power spectra (Thibaut and Steve)}
 
-\subsection{Basic principles}
+We both use the MASTER algorithm for Power Spectrum estimation. We compute pseudo-power spectrum and then correct for the effect of the window function, beam and filter applied to the data. Other methods exist for power spectrum estimation. Because they contain $10^{7}-10^{8}$ pixels, optimal methods are hard to implement for the ACTPol maps analysis.
 
-The output of the map making pipeline is a set of maps in CAR pixellization: $T(\bm{x}), Q(\bm{x}), U(\bm{x})$, the hit count maps and an estimation of the covariance (T,Q,U) of the noise. The power spectrum pipeline uses the hit count map for weighting the data, but  does not yet use this covariance.
+\subsection{Basic principles}\label{subsec:PSbasis}
+
+The output of the map making pipeline is a set of maps in CAR pixellization: $T(\bm{x}), Q(\bm{x}), U(\bm{x})$, a set of hit count maps and an estimation of the covariance (T,Q,U) of the noise. The power spectrum pipeline uses the hit count map for weighting the data, but  does not yet use this covariance.
 Enki provides (T,Q,U) as an individual fit file, while Ninkasi output the maps separately, tools exist in Enlib to convert from one format to the other. 
 
-The maps consist of splits in time of the data, four splits for s13, s14, s15 and two splits for s16. This format has been chosen to ensure  approximate even coverage for each of the splits. 
+The maps consist of four splits for s13, s14, s15 and two splits for s16. This format has been chosen to ensure  approximate even coverage for each of the splits. 
 
-The main output of the power spectrum pipeline is  (TT,TE,TB,EE,EB,BB) cross spectra. They are average of the $N_{s}(N_{s}+1)/2$ individual cross spectra obtained by cross correlating different splits  ($N_{s}$ is the number of splits). The $N_{s}$ auto spectra are  used to estimate the noise properties of the data. 
+The main output of the power spectrum pipeline is  the TT, TE, TB, EE, EB, BB cross spectra. They are average of the $N_{s}(N_{s}+1)/2$ individual cross spectra obtained by cross correlating different splits  ($N_{s}$ is the number of splits). The $N_{s}$ auto spectra are  used to estimate the noise properties of the data. 
 
-Let us start this with a simple data model for a map of temperature anisotropies, we will use the flat sky approximation
+Let us start this with a simple data model for temperature anisotropies, we will use the flat sky approximation
 
 \ba
-\tilde{T}_{i}(\bm{x}) &=& \int d\bm{x'} B( \bm{x}-\bm{x'}) W(\bm{x'}) T(\bm{x'})+W( \bm{x}) n_{i} (\bm{x})  \\
+\tilde{T}_{i}(\bm{x}) &=& \int d\bm{x'} b( \bm{x}-\bm{x'}) W(\bm{x'}) T(\bm{x'})+W( \bm{x}) n_{i} (\bm{x})  \\
 \ea
-Here $B( \bm{x})$ represent the effect of the beam and $W( \bm{x})$ is the window function applied on the data. The window function is formed by the product of a point source mask, the hit count map and an apodization function. The Fourier transform of this map is given by
+Here $b( \bm{x})$ represent the effect of the beam and $W( \bm{x})$ is the window function applied to the data. The window function is given by the product of a point source mask, the hit count map and an apodization function. The Fourier transform of this map is given by
 \ba
-\tilde{T}_{i}(\bm{\ell}) &=& \int d\bm{\ell'} W (\bm{\ell}-\bm{\ell'}) \left[ B(\bm{\ell'}) T(\bm{\ell'}) + n_{i}(\bm{\ell'})\right]
+\tilde{T}_{i}(\bm{\ell}) &=& \int d\bm{\ell'} W (\bm{\ell}-\bm{\ell'}) \left[ b(\bm{\ell'}) T(\bm{\ell'}) + n_{i}(\bm{\ell'})\right] \label{eq:Tfourier}
 \ea
 An estimator for the two dimensional cross power spectrum $C(\bm{\ell})=\langle T(\bm{\ell}) T^{*}(\bm{\ell}) \rangle $ can be simply written  
 \ba
@@ -77,7 +78,7 @@ An estimator for the two dimensional cross power spectrum $C(\bm{\ell})=\langle 
 However this estimator is biased $\langle \tilde{C}(\bm{\ell}) \rangle \neq C(\bm{\ell})$, indeed
 \ba
 \langle \tilde{C}(\bm{\ell}) \rangle &=& \langle  \tilde{T}_{i}(\bm{\ell}) \tilde{T}^{*}_{j}(\bm{\ell}) \rangle \\
-&=& \int d\bm{\ell'} | W (\bm{\ell}-\bm{\ell'})|^{2}B^{2}(\bm{\ell'})  C(\bm{\ell'})
+&=& \int d\bm{\ell'} | W (\bm{\ell}-\bm{\ell'})|^{2}b^{2}(\bm{\ell'})  C(\bm{\ell'})
 \ea
 where we used the fact that the noise on different splits is uncorrelated $ \langle n_{i}(\bm{\ell}) n_{j}(\bm{\ell}) \rangle=0$. When we display two dimensional power spectra, we are looking at this quantity. In order to get an unbiased estimator, we need to invert this equation. So far, I used the continuous limit to write down the equation system. In reality the number of modes is finite and this equation can be rewritten as a matrix equation
 \ba
@@ -93,9 +94,106 @@ Our final estimate for the power spectrum is then
 \ea
 This estimator is unbiased. Computing and inverting $M_{b, b'}$ is really the name of the game of power spectrum estimation. It is by far the most expensive step in the power spectrum pipeline.
 
-\subsection{Power spectrum estimation of polarisation data}
+\subsection{Polarization data in the Flat-Sky approximation}
 
-We want to estimate the polar...
+The polarization field can be written as  a $2\times2$ symmetric, trace free, tensor 
+\ba
+P_{ab}(\bm{x})= \frac{1}{2}
+\begin{pmatrix} 
+Q(\bm{x}) & 
+U(\bm{x}) \cr
+U(\bm{x}) & 
+-Q(\bm{x}) \cr
+\end{pmatrix} 
+\ea
+This form ensures that Q and U transform as expected under a coordinate transformation (imagine for example a rotation of your detectors' array).
+Any $2\times2$ symmetric, trace free, tensor can be uniquely decomposed in two parts
+\ba 
+\eop_{ab} A=(-\partial_{a}\partial_{b}+ \frac{1}{2}\delta_{ab} \nabla^{2})A \ ; \ \bop_{ab}B=\frac{1}{2} (\epsilon_{ac}\partial^{c}\partial_{b} + \epsilon_{bc}\partial^{c}\partial_{a})B
+\ea
+where A and B are scalar functions. Since the $e^{i\bm{\ell} \bm{x}}$ provide a basis for a scalar function in the plane, we define
+\ba
+(^{E}e^{i\bm{\ell}\bm{x}})_{ab} &=& N_{\bm{\ell}} \eop_{ab} (e^{i\bm{\ell}\bm{x}})= N_{\bm{\ell}} ( \ell_{a}\ell_{b}- \frac{\bm{\ell}^{2}}{2}\delta_{ab})e^{i\bm{\ell}\bm{x}} \\
+(^{B}e^{i\bm{\ell}\bm{x}})_{ab} &=& M_{\bm{\ell}}\bop_{ab} (e^{i\bm{\ell}\bm{x}})=- \frac{M_{\bm{\ell}}}{2} (\epsilon_{ac}\ell^{c}\ell_{b} + \epsilon_{bc}\ell^{c}\ell_{a}) e^{i\bm{\ell}\bm{x}}
+\ea
+The normalization coefficient $N_{\bm{\ell}}$ is chosen in order to ensure the orthogonality relation.
+\ba
+\int d^{2}x (^{E}e^{i\bm{\ell}\bm{x}})^{*}_{ab} (^{E}e^{i\bm{\ell}'\bm{x}})^ {ab} = \delta( \bm{\ell}-\bm{\ell}')
+\ea
+we can expand the polarization field on this basis
+\ba
+P_{ab}(\bm{x}) &=& \frac{1}{\sqrt{2}} \int d\bm{\ell} E(\bm{\ell}) (^{E}e^{i\bm{\ell}\bm{x}})_{ab} +B({\bm{\ell}}) (^{B}e^{i\bm{\ell}\bm{x}})_{ab} \\
+ E({\bm{\ell}}) &=& \frac{2}{\ell^{2}} \int d^{2}x   P_{ab}(\bm{x})   \eop^{ab}(e^{-i\bm{\ell}\bm{x}}) \\
+ B({\bm{\ell}}) &=& \frac{2}{\ell^{2}} \int d^{2}x   P_{ab}(\bm{x})  \bop^{ab}(e^{-i\bm{\ell}\bm{x}}) 
+\ea
+Defining $\phi_{\bm{\ell}}$ such as:
+\ba
+\cos\phi_{\bm{\ell}}=\frac{\ell_{x}}{\ell} \ , \ \cos 2\phi_{\bm{\ell}} = \frac{\ell_{x}^{2}-\ell_{y}^{2} }{\ell^{2}} \ , \ \sin 2\phi_{\bm{\ell}} = \frac{2\ell_{x}\ell_{y}}{\ell^{2}}
+\ea
+this is equivalent to the spin formalism for polarisation data
+\ba
+E({\bm{\ell}}) &=& Q(\bm{\ell}) \cos 2\phi_{\bm{\ell}}+U(\bm{\ell})\sin 2\phi_{\bm{\ell}}   \\
+B({\bm{\ell}}) &=& -Q(\bm{\ell})\sin 2\phi_{\bm{\ell}} +U(\bm{\ell}) \cos 2\phi_{\bm{\ell}}  \\
+E({\bm{\ell}}) \pm i B({\bm{\ell}})&=& e^{\mp 2i\phi_{\bm{\ell}}}(Q(\bm{\ell}) \pm i U(\bm{\ell}))
+\ea
+
+\subsubsection{Mode coupling calculation }
+We need to extend the mode coupling calculation presented in  \ref{subsec:PSbasis}, to polarisation data.  We start by computing the Fourier transform of the Stokes component
+\ba
+\tilde{Q}_{i}(\bm{\ell}) &=& \int d\bm{\ell'} W (\bm{\ell}-\bm{\ell'}) \left[ b(\bm{\ell'}) Q(\bm{\ell'}) + n^{Q}_{i}(\bm{\ell'})\right]  \\
+\tilde{U}_{i}(\bm{\ell}) &=& \int d\bm{\ell'} W (\bm{\ell}-\bm{\ell'}) \left[ b(\bm{\ell'}) U(\bm{\ell'}) + n^{U}_{i}(\bm{\ell'})\right] 
+\ea
+to simplify the equations and with no loss of generality we will ignore the noise term in the derivation. The observed E and B modes can be written
+\ba
+\tilde{E}({\bm{\ell}}) \pm i \tilde{B}({\bm{\ell}})&=& e^{\mp 2i\phi_{\bm{\ell}}}(\tilde{Q}(\bm{\ell}) \pm i \tilde{U}(\bm{\ell})) \\
+&=& \int d\bm{\ell'} b(\bm{\ell'}) W(\bm{\ell}-\bm{\ell'})  [E({\bm{\ell}'}) \pm i B({\bm{\ell}'})]  e^{  \pm 2i (\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})  }  
+\ea
+the estimated E (B) modes are then given by a mixture of E and B modes
+\ba
+\tilde{E}({\bm{\ell}})&=&  \int d\bm{\ell'} b(\bm{\ell'}) W(\bm{\ell}-\bm{\ell'})  [  E({\bm{\ell}'}) \cos  2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})  - B({\bm{\ell}'}) \sin  2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})  ]   \nonumber \\
+\tilde{B}({\bm{\ell}}) &=&  \int d\bm{\ell'} b(\bm{\ell'}) W(\bm{\ell}-\bm{\ell'})  [  E({\bm{\ell}'}) \sin  2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})  + B({\bm{\ell}'}) \cos  2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})  ]   \nonumber \\
+\ea
+Following what we have done in \ref{subsec:PSbasis}, we can relate the estimated power spectrum to the unbiased power spectrum with a mode coupling matrix.
+\ba
+ \begin{pmatrix}  \tilde{C}_{TE}({\bm{\ell}})\cr \tilde{C}_{TB}({\bm{\ell}})\cr \tilde{C}_{EE} ({\bm{\ell}})  \cr \tilde{C}_{EB} ({\bm{\ell}})  \cr \tilde{C}_{BB} ({\bm{\ell}}) \end{pmatrix} = \sum_{\bm{\ell'} }M_{\bm{\ell}, \bm{\ell'}}\begin{pmatrix}  C_{TE}({\bm{\ell}'})\cr C_{TB}({\bm{\ell}'})\cr C_{EE}({\bm{\ell}'})\cr C_{EB}({\bm{\ell}'})\cr C_{BB}({\bm{\ell}'})\cr  \end{pmatrix} 
+\ea
+\ba
+M_{\bm{\ell}, \bm{\ell'}}= b^{2}(\bm{\ell'})  | W(\bm{\ell}-\bm{\ell'})|^{2} 
+\begin{pmatrix} 
+\cos \Delta_{\ell,\ell'}  & 
+-\sin \Delta_{\ell,\ell'} &
+0 & 
+0 & 
+0 & 
+\cr
+\sin \Delta_{\ell,\ell'}  & 
+\cos \Delta_{\ell,\ell'}  &
+0 & 
+0 & 
+0 & 
+  \cr
+0 & 
+0 &
+\cos^{2} \Delta_{\ell,\ell'} & 
+-2 \cos \Delta_{\ell,\ell'}  \sin \Delta_{\ell,\ell'} &
+\sin^{2} \Delta_{\ell,\ell'}  &  
+ \cr
+0 & 
+0 &
+\cos \Delta_{\ell,\ell'}  \sin \Delta_{\ell,\ell'} & 
+\cos^{2} \Delta_{\ell,\ell'}-\sin^{2} \Delta_{\ell,\ell'} & 
+-\cos \Delta_{\ell,\ell'}  \sin \Delta_{\ell,\ell'} & 
+\cr
+0 & 
+0 &
+\sin^{2} \Delta_{\ell,\ell'}  & 
+2 \cos \Delta_{\ell,\ell'}  \sin \Delta_{\ell,\ell'} & 
+\cos^{2} \Delta_{\ell,\ell'}  & 
+\cr
+\end{pmatrix}
+\ea
+With  $\Delta_{\ell,\ell'}= 2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})$:
+
 
 \subsection{Flat sky vs Full sky}
 
