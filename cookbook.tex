@@ -126,16 +126,32 @@ P_{ab}(\bm{x}) &=& \frac{1}{\sqrt{2}} \int d\bm{\ell} E(\bm{\ell}) (^{E}e^{i\bm{
  E({\bm{\ell}}) &=& \frac{2}{\ell^{2}} \int d^{2}x   P_{ab}(\bm{x})   \eop^{ab}(e^{-i\bm{\ell}\bm{x}}) \\
  B({\bm{\ell}}) &=& \frac{2}{\ell^{2}} \int d^{2}x   P_{ab}(\bm{x})  \bop^{ab}(e^{-i\bm{\ell}\bm{x}}) 
 \ea
-Defining $\phi_{\bm{\ell}}$ such as:
-\ba
-\cos\phi_{\bm{\ell}}=\frac{\ell_{x}}{\ell} \ , \ \cos 2\phi_{\bm{\ell}} = \frac{\ell_{x}^{2}-\ell_{y}^{2} }{\ell^{2}} \ , \ \sin 2\phi_{\bm{\ell}} = \frac{2\ell_{x}\ell_{y}}{\ell^{2}}
-\ea
 this is equivalent to the spin formalism for polarization data
 \ba
 E({\bm{\ell}}) &=& Q(\bm{\ell}) \cos 2\phi_{\bm{\ell}}+U(\bm{\ell})\sin 2\phi_{\bm{\ell}}   \\
 B({\bm{\ell}}) &=& -Q(\bm{\ell})\sin 2\phi_{\bm{\ell}} +U(\bm{\ell}) \cos 2\phi_{\bm{\ell}}  \\
 E({\bm{\ell}}) \pm i B({\bm{\ell}})&=& e^{\mp 2i\phi_{\bm{\ell}}}(Q(\bm{\ell}) \pm i U(\bm{\ell}))
 \ea
+The Q and U maps geometry can also be read trivially from this set of equation, using polarisation convention compatible with the map maker, we have
+
+\newcommand{\costwo}{\ensuremath{%
+  \mathchoice{\includegraphics[height=4ex]{cos2.png}}
+    {\includegraphics[height=2ex]{cos2.png}}
+    {\includegraphics[height=1.5ex]{cos2.png}}
+    {\includegraphics[height=1ex]{cos2.png}}
+}}
+
+\newcommand{\sintwo}{\ensuremath{%
+  \mathchoice{\includegraphics[height=4ex]{sin2.png}}
+    {\includegraphics[height=2ex]{sin2.png}}
+    {\includegraphics[height=1.5ex]{sin2.png}}
+    {\includegraphics[height=1ex]{sin2.png}}
+}}
+\ba
+Q(\bm{\ell}) &=& E(\bm{\ell}) \costwo - B(\bm{\ell}) \sintwo \\
+U(\bm{\ell}) &=& E(\bm{\ell}) \sintwo + B(\bm{\ell}) \costwo
+\ea
+where I  replace the cos and sin by a graphical representation. We can see that if the map is dominated by E modes  Q will have a '+' geometry and U will have a '$\times$' geometry.
 
 \subsubsection{Mode coupling calculation }
 We need to extend the mode coupling calculation presented in  \ref{subsec:PSbasis}, to polarization data.  We start by computing the Fourier transform of the Stokes component
@@ -192,7 +208,7 @@ M_{\bm{\ell}, \bm{\ell'}}= b^{2}(\bm{\ell'})  | W(\bm{\ell}-\bm{\ell'})|^{2}
 \cr
 \end{pmatrix}
 \ea
-With  $\Delta_{\bm{\ell},\bm{\ell'}}= 2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})$
+With  $\Delta_{\bm{\ell},\bm{\ell'}}= 2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})$. Again this matrix can not be inverted. Both the mode coupling matrix and the spectra need to be binned first.
 
 
 \subsection{Flat sky vs Full sky}
