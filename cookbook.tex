@@ -42,7 +42,7 @@ editing/asking clarification in other people sections: \skn{Sigurd}, \TIB{Thibau
 
 \section{TOD cut and calibration}
 
-\section{Beams, pointing model, time constant}
+\section{Beams, pointing model, time constant, half-wave plate}
 
 \section{Point sources, mask and cluster studies}
 
@@ -65,7 +65,7 @@ The main output of the power spectrum pipeline is  the TT, TE, TB, EE, EB, BB cr
 Let us start this with a simple data model for temperature anisotropies, we will use the flat sky approximation
 
 \ba
-\tilde{T}_{i}(\bm{x}) &=& \int d\bm{x'} b( \bm{x}-\bm{x'}) W(\bm{x'}) T(\bm{x'})+W( \bm{x}) n_{i} (\bm{x})  \\
+\tilde{T}_{i}(\bm{x}) &=& \int d\bm{x'} b( \bm{x}-\bm{x'}) W(\bm{x'}) T(\bm{x'})+W( \bm{x}) n_{i} (\bm{x})  
 \ea
 Here $b( \bm{x})$ represent the effect of the beam and $W( \bm{x})$ is the window function applied to the data. The window function is given by the product of a point source mask, the hit count map and an apodization function. The Fourier transform of this map is given by
 \ba
@@ -73,12 +73,12 @@ Here $b( \bm{x})$ represent the effect of the beam and $W( \bm{x})$ is the windo
 \ea
 An estimator for the two dimensional cross power spectrum $C(\bm{\ell})=\langle T(\bm{\ell}) T^{*}(\bm{\ell}) \rangle $ can be simply written  
 \ba
-\tilde{C}(\bm{\ell})= \tilde{T}_{i}(\bm{\ell}) \tilde{T}^{*}_{j}(\bm{\ell})
+\tilde{C}(\bm{\ell})= \rho(\bm{\ell}) \tilde{T}_{i}(\bm{\ell}) \tilde{T}^{*}_{j}(\bm{\ell})
 \ea
-However this estimator is biased $\langle \tilde{C}(\bm{\ell}) \rangle \neq C(\bm{\ell})$, indeed
+Where we have introduced $\rho(\bm{\ell})$ which is an arbitrary weight function that can be used to give different weight to different modes (it can be the k-mask, or an azimuthal weight). However this estimator is biased $\langle \tilde{C}(\bm{\ell}) \rangle \neq C(\bm{\ell})$, indeed
 \ba
 \langle \tilde{C}(\bm{\ell}) \rangle &=& \langle  \tilde{T}_{i}(\bm{\ell}) \tilde{T}^{*}_{j}(\bm{\ell}) \rangle \\
-&=& \int d\bm{\ell'} | W (\bm{\ell}-\bm{\ell'})|^{2}b^{2}(\bm{\ell'})  C(\bm{\ell'})
+&=& \rho(\bm{\ell}) \int d\bm{\ell'} | W (\bm{\ell}-\bm{\ell'})|^{2}b^{2}(\bm{\ell'})  C(\bm{\ell'})
 \ea
 where we used the fact that the noise on different splits is uncorrelated $ \langle n_{i}(\bm{\ell}) n_{j}(\bm{\ell}) \rangle=0$. When we display two dimensional power spectra, we are looking at this quantity. In order to get an unbiased estimator, we need to invert this equation. So far, I used the continuous limit to write down the equation system. In reality the number of modes is finite and this equation can be rewritten as a matrix equation
 \ba
@@ -106,7 +106,7 @@ U(\bm{x}) &
 -Q(\bm{x}) \cr
 \end{pmatrix} 
 \ea
-This form ensures that Q and U transform as expected under a coordinate transformation (imagine for example a rotation of your detectors' array).
+This form ensures that Q and U transform as expected under a coordinate transformation (imagine for example a rotation of your detectors' array by an angle $\phi$).
 Any $2\times2$ symmetric, trace free, tensor can be uniquely decomposed in two parts
 \ba 
 \eop_{ab} A=(-\partial_{a}\partial_{b}+ \frac{1}{2}\delta_{ab} \nabla^{2})A \ ; \ \bop_{ab}B=\frac{1}{2} (\epsilon_{ac}\partial^{c}\partial_{b} + \epsilon_{bc}\partial^{c}\partial_{a})B
@@ -151,7 +151,7 @@ The Q and U maps geometry can also be read trivially from this set of equation, 
 Q(\bm{\ell}) &=& E(\bm{\ell}) \costwo - B(\bm{\ell}) \sintwo \\
 U(\bm{\ell}) &=& E(\bm{\ell}) \sintwo + B(\bm{\ell}) \costwo
 \ea
-where we replace the cos and sin by a graphical representation. We can see that if the map is dominated by E modes  Q will have a '+' geometry and U will have a '$\times$' geometry.
+where we replace the cos and sin by a graphical representation. We can see that if the map is dominated by E modes  Q will have a '+' geometry and U will have a '$\times$' geometry (remember that E and B are isotropic)
 
 \subsubsection{Mode coupling calculation }
 We need to extend the mode coupling calculation presented in  \ref{subsec:PSbasis}, to polarization data.  We start by computing the Fourier transform of the Stokes component
@@ -213,11 +213,114 @@ With  $\Delta_{\bm{\ell},\bm{\ell'}}= 2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})$. 
 
 \subsection{Flat sky vs Full sky}
 
-
+Similar derivations can be done in the context of full sky power estimation. The math are slighty more complicated as they involve spherical harmonic $Y_{\ell m} (\bm{\hat{n}})$ instead of Fourier modes $e^{i\bm{\ell}\bm{x}}$. It is still interesting to derive the mode coupling matrix for the temperature case, because it will shed light on an important difference between the flat sky and the full sky pipeline. Let's start with the decomposition of the temperature map in spherical harmonic (in practice, we use the python wrapper of the {\it sharp} module which is included in the {\it enlib} library and allow for doing spherical harmonic transform on CAR pixellisation) 
+\ba
+T(\hat{n}) &=& \sum_{\ell m} a_{\ell m} Y_{\ell m}(\hat{n}) \\
+a_{\ell m} &=& \int d \hat{n} T(\hat{n})  Y^{*}_{\ell m}(\hat{n})
+\ea
+In practice we need to include the effect of a window function
+\ba
+\tilde{a}_{\ell m} &=& \int d \hat{n} T(\hat{n}) W(\hat{n}) Y^{*}_{\ell m}(\hat{n}) \\
+\tilde{a}_{\ell m} &=& \sum_{\ell' m'} a_{\ell' m'} \int d \hat{n} Y_{\ell' m'}(\hat{n}) W(\hat{n}) Y^{*}_{\ell m}(\hat{n}) \\
+\tilde{a}_{\ell m} &=& \sum_{\ell' m'} K_{\ell,m, \ell', m'} a_{\ell' m'} 
+\ea
+similarly to the flat sky case, the effect of the window function is to couple otherwise independent modes $a_{\ell m} $, and the difficulty is to compute the coupling Kernel
+\ba
+K_{\ell_1,m_1, \ell_2, m_2} &=& \int d \hat{n} Y^{*}_{\ell_1 m_1}(\hat{n}) W(\hat{n}) Y_{\ell_2 m_2}(\hat{n}) \\
+&=& \sum_{ \ell_3, m_3} w_{ \ell_3, m_3}  \int d \hat{n} Y^{*}_{\ell_1 m_1}(\hat{n}) Y_{\ell_3 m_3} (\hat{n}) Y_{\ell_2 m_2}(\hat{n})
+\ea
+This integral can be express in term of Wigner 3j symbol (they are usually introduced in the context of the addition of angular momentum in Quantum Mecanic).
+ \ba
+\int d \hat{n} Y^{*}_{\ell_1 m_1}(\hat{n}) Y_{\ell_3 m_3} (\hat{n}) Y_{\ell_2 m_2}(\hat{n}) &=& (-1)^{m_1} \left[\frac{(2\ell_1+1) (2\ell_2+1) (2\ell_3+1)}{4\pi} \right]^{1/2} \\ \nonumber
+&\times& \left(\begin{array}{clcr}
+\ell_1 & \ell_2 & \ell_3\\
+0 & 0 & 0 \end{array}\right)
+\left(\begin{array}{clcr}
+\ell_1 & \ell_2 & \ell_3\\
+-m_{1} & m_{2} & m_{3} \end{array}\right)
+\ea
+One nice thing about Wigner 3j is the following property
+\ba
+\sum_{m_1 m_2}
+\left(\begin{array}{clcr}
+\ell_1 & \ell_2 & \ell_3\\
+m_{1} & m_{2} & m_{3} \end{array}\right)
+\left(\begin{array}{clcr}
+\ell_1 & \ell_2 & \ell^{'}_3\\
+m_{1} & m_{2} & m^{'}_{3} \end{array}\right)= \delta_{m_3 m^{'}_3} \delta_{\ell_3 \ell^{'}_3} \delta(\ell_1, \ell_2, \ell_3) \frac{1}{2\ell_3+1}
+\ea
+The mean of our estimator for the power spectrum is given by
+\ba
+\langle \tilde{C}_{\ell} \rangle &=& \frac{1}{2\ell +1}\sum^{\ell}_{m=-\ell} \langle \tilde{a}_{\ell m} \tilde{a}^{*}_{\ell m} \rangle \\
+&=&  \frac{1}{2\ell +1}\sum^{\ell}_{m=-\ell} \langle \sum_{\ell_1 m_1} K_{\ell,m, \ell_1, m_1} a_{\ell_1 m_1}  \sum_{\ell_2 m_2} K^{*}_{\ell,m, \ell_2, m_2} a^{*}_{\ell_2 m_2} \rangle \\
+&=&  \frac{1}{2\ell +1}\sum^{\ell}_{m=-\ell}  \sum_{\ell_1 m_1} \langle C_{\ell_1} \rangle | K_{\ell,m, \ell_1, m_1} |^{2} 
+\ea
+The next move is to expand and simplify the Kernel
+\ba
+\langle \tilde{C}_{\ell} \rangle &=&    \sum_{\ell_1}  \frac{2\ell_1 +1}{4\pi} \langle C_{\ell_1} \rangle  \sum_{ \ell_3, m_3} w_{ \ell_3, m_3}  \sum_{ \ell_4, m_4} w^{*}_{ \ell_4, m_4}  (2\ell_3+1)^{1/2} (2\ell_4+1)^{1/2} \\ \nonumber \label{eq:line1mcm}
+&\times &
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_3\\
+0 & 0 & 0 \end{array}\right)
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_4\\
+0 & 0 & 0 \end{array}\right)
+\sum_{m,m_1}
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_3\\
+-m & m_{1} & m_{3} \end{array}\right)
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_4\\
+-m & m_{1} & m_{4} \end{array}\right) \\
+&=&    \sum_{\ell_1}  \frac{2\ell_1 +1}{4\pi} \langle C_{\ell_1} \rangle  \sum_{ \ell_3, m_3} w_{ \ell_3, m_3}  \sum_{ \ell_4, m_4} w^{*}_{ \ell_4, m_4}  (2\ell_3+1)^{1/2} (2\ell_4+1)^{1/2} \\ \nonumber \label{eq:line2mcm}
+&\times &
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_3\\
+0 & 0 & 0 \end{array}\right)
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_4\\
+0 & 0 & 0 \end{array}\right)
+\delta_{m_3 m_4} \delta_{\ell_3 \ell_4} \delta(\ell_1, \ell_2, \ell_3) \frac{1}{2\ell_3+1} \\
+&=&    \sum_{\ell_1}  \frac{2\ell_1 +1}{4\pi} \langle C_{\ell_1} \rangle  \sum_{ \ell_3, m_3} w_{ \ell_3, m_3}   w^{*}_{ \ell_3, m_3}    
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_3\\
+0 & 0 & 0 \end{array}\right)^{2} \\
+&=&    \sum_{\ell_1}  \frac{2\ell_1 +1}{4\pi} \langle C_{\ell_1} \rangle  \sum_{ \ell_3} (2\ell_3+1) {\cal W}_{\ell_3} 
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_3\\
+0 & 0 & 0 \end{array}\right)^{2} \\
+&=& \sum_{\ell_1}M_{ \ell, \ell_1} \langle C_{\ell_1} \rangle
+\ea
+At the end, the expression of the mode coupling is simple of can be computed with $\ell_{\rm max}^{3}$ operations. 
+\ba
+M_{ \ell, \ell_1}=   \frac{2\ell_1 +1}{4\pi}  \sum_{ \ell_3} (2\ell_3+1) {\cal W}_{\ell_3} 
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_3\\
+0 & 0 & 0 \end{array}\right)^{2}
+\ea
+There is an important difference between this formalism and the one of the Flat Sky approximation. The simplification between Eq \ref{eq:line1mcm} and Eq \ref{eq:line2mcm} allows us to reduce the computation time drastically. However, imagine that instead of using the estimator
+\ba
+ \tilde{C}_{\ell}  &=& \frac{1}{2\ell +1}\sum^{\ell}_{m=-\ell}  \tilde{a}_{\ell m} \tilde{a}^{*}_{\ell m}  
+\ea
+We would like to switch to an estimator allowing for different weighting of the spherical harmonic
+\ba
+ \tilde{C}_{\ell}  &=& \frac{1}{2\ell +1}\sum^{\ell}_{m=-\ell} \rho_{\ell m}  \tilde{a}_{\ell m} \tilde{a}^{*}_{\ell m}  
+\ea
+In that case the last term of equation 41 becomes
+\ba
+\sum_{m,m_1} \rho_{\ell m}
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_3\\
+-m & m_{1} & m_{3} \end{array}\right)
+\left(\begin{array}{clcr}
+\ell & \ell_1 & \ell_4\\
+-m & m_{1} & m_{4} \end{array}\right)
+\ea
+preventing the important simplication. In the Flat-Sky case, we can afford to compute the mode coupling exactly and include the effect of k-mask and azimuthal weighting in a straightforward way. For the full sky case, we are applying the k-mask on data and deconvolve its effect using a transfer function. It seems to give satisfying result for TT and EE, while more investigation is currently done for BB.
 
 \subsection{Azimuthal weighting}
 
-\subsection{Prewithening}
+\subsection{Prewithening/ Mask apodization}
 
 \subsection{Cross frequencies and Cross seasons  power spectra}
 
