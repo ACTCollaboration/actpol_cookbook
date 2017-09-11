@@ -96,6 +96,16 @@ P_{b, \bm{\ell}}  &=& \frac{\rho(\bm{\ell})}{\sum_{\bm{\ell}}\rho(\bm{\ell})} \b
 Q_{ \bm{\ell},b}=  &=& \left\{ \begin{array}{rcl} 1 & \mbox{if} &  \bm{\ell} \in b \\ 0 & \mbox{otherwise}
 \end{array}\right. 
 \ea
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.5\columnwidth]{p2d.png}
+  \caption{Bin in annuli for the Flat Sky power spectrum estimation, we compute the norm $|\bm{\ell}|$ at the center of the Fourier pixel, if the norm is within  $\ell^{\rm min}_{b} \leq |{\bm{\ell}| \leq \ell^{\rm max}_{b}}$  the mode belong to the bin b.}
+  \label{fig:p2dbin}
+\end{figure}
+
+
+
 Where we have introduced $\rho(\bm{\ell})$ which is an arbitrary weight function that can be used to give different weight to different modes (it can be the k-mask, or an azimuthal weight).
 Our final estimate for the power spectrum is then
 \ba
@@ -144,14 +154,14 @@ E({\bm{\ell}}) \pm i B({\bm{\ell}})&=& e^{\mp 2i\phi_{\bm{\ell}}}(Q(\bm{\ell}) \
 The Q and U maps geometry can also be read trivially from this set of equation, using a polarisation convention compatible with the output of the map maker, we have
 
 \newcommand{\costwo}{\ensuremath{%
-  \mathchoice{\includegraphics[height=4ex]{cos2.png}}
+  \mathchoice{\includegraphics[height=6ex]{cos2.png}}
     {\includegraphics[height=2ex]{cos2.png}}
     {\includegraphics[height=1.5ex]{cos2.png}}
     {\includegraphics[height=1ex]{cos2.png}}
 }}
 
 \newcommand{\sintwo}{\ensuremath{%
-  \mathchoice{\includegraphics[height=4ex]{sin2.png}}
+  \mathchoice{\includegraphics[height=6ex]{sin2.png}}
     {\includegraphics[height=2ex]{sin2.png}}
     {\includegraphics[height=1.5ex]{sin2.png}}
     {\includegraphics[height=1ex]{sin2.png}}
