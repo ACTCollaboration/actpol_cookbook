@@ -73,12 +73,12 @@ Here $b( \bm{x})$ represent the effect of the beam and $W( \bm{x})$ is the windo
 \ea
 An estimator for the two dimensional cross power spectrum $C(\bm{\ell})=\langle T(\bm{\ell}) T^{*}(\bm{\ell}) \rangle $ can be simply written  
 \ba
-\tilde{C}(\bm{\ell})= \rho(\bm{\ell}) \tilde{T}_{i}(\bm{\ell}) \tilde{T}^{*}_{j}(\bm{\ell})
+\tilde{C}(\bm{\ell})=  \tilde{T}_{i}(\bm{\ell}) \tilde{T}^{*}_{j}(\bm{\ell})
 \ea
-Where we have introduced $\rho(\bm{\ell})$ which is an arbitrary weight function that can be used to give different weight to different modes (it can be the k-mask, or an azimuthal weight). However this estimator is biased $\langle \tilde{C}(\bm{\ell}) \rangle \neq C(\bm{\ell})$, indeed
+However this estimator is biased $\langle \tilde{C}(\bm{\ell}) \rangle \neq C(\bm{\ell})$, indeed
 \ba
 \langle \tilde{C}(\bm{\ell}) \rangle &=& \langle  \tilde{T}_{i}(\bm{\ell}) \tilde{T}^{*}_{j}(\bm{\ell}) \rangle \\
-&=& \rho(\bm{\ell}) \int d\bm{\ell'} | W (\bm{\ell}-\bm{\ell'})|^{2}b^{2}(\bm{\ell'})  C(\bm{\ell'})
+&=&  \int d\bm{\ell'} | W (\bm{\ell}-\bm{\ell'})|^{2}b^{2}(\bm{\ell'})  C(\bm{\ell'})
 \ea
 where we used the fact that the noise on different splits is uncorrelated $ \langle n_{i}(\bm{\ell}) n_{j}(\bm{\ell}) \rangle=0$. When we display two dimensional power spectra, we are looking at this quantity. In order to get an unbiased estimator, we need to invert this equation. So far, I used the continuous limit to write down the equation system. In reality the number of modes is finite and this equation can be rewritten as a matrix equation
 \ba
@@ -86,8 +86,17 @@ where we used the fact that the noise on different splits is uncorrelated $ \lan
 \ea 
 Inverting this equation is then equivalent to finding the inverse of the matrix $ M_{\bm{\ell}, \bm{\ell'}} $. In practice however, the matrix is not well conditionned, and its inverse does not exist. The physical reason for which this matrix can not be inverted is quiet clear. If you observe only a fraction of the sky, you can not distinguish between close-by Fourier modes, this is equivalent to say that you have limited resolution in harmonic space. In practice, what we do is to bin the matrix and the power spectrum, and turn the equation system into
 \ba
-\langle \tilde{C}_{b} \rangle= \sum_{b'} M_{b, b'}  C_{b'}
+\langle \tilde{C}_{b} \rangle= \sum_{b'} M_{b, b'}  C_{b'} 
 \ea 
+With the bin are defined as a set of annuli on the two dimensional Fourier space
+\ba
+C_{b} &=&\sum_{\bm \ell} P_{b, \bm{\ell}} C_{\bm{\ell}} \\
+M_{b, b'} &=& \sum_{\bm{\ell},\bm{\ell'}} P_{b, \bm{\ell}} M_{\bm{\ell}, \bm{\ell'}} Q_{\bm{\ell'}, b'} \\
+P_{b, \bm{\ell}}  &=& \frac{\rho(\bm{\ell})}{\sum_{\bm{\ell}}\rho(\bm{\ell})} \bigg{|}_{\bm{\ell} \in b}\\
+Q_{ \bm{\ell},b}=  &=& \left\{ \begin{array}{rcl} 1 & \mbox{if} &  \bm{\ell} \in b \\ 0 & \mbox{otherwise}
+\end{array}\right. 
+\ea
+Where we have introduced $\rho(\bm{\ell})$ which is an arbitrary weight function that can be used to give different weight to different modes (it can be the k-mask, or an azimuthal weight).
 Our final estimate for the power spectrum is then
 \ba
 \hat{C}_{b}= (M_{b, b'})^{-1} \tilde{C}_{b'} 
