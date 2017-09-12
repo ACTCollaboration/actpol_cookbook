@@ -252,7 +252,7 @@ similarly to the flat sky case, the effect of the window function is to couple o
 K_{\ell_1,m_1, \ell_2, m_2} &=& \int d \hat{n} Y^{*}_{\ell_1 m_1}(\hat{n}) W(\hat{n}) Y_{\ell_2 m_2}(\hat{n}) \\
 &=& \sum_{ \ell_3, m_3} w_{ \ell_3, m_3}  \int d \hat{n} Y^{*}_{\ell_1 m_1}(\hat{n}) Y_{\ell_3 m_3} (\hat{n}) Y_{\ell_2 m_2}(\hat{n})
 \ea
-This integral can be express in term of Wigner 3j symbol (they are usually introduced in the context of the addition of angular momentum in Quantum Mecanic).
+This integral can be express in term of Wigner 3j symbol (they are usually introduced in the context of the addition of angular momentum in Quantum mechanics).
  \ba
 \int d \hat{n} Y^{*}_{\ell_1 m_1}(\hat{n}) Y_{\ell_3 m_3} (\hat{n}) Y_{\ell_2 m_2}(\hat{n}) &=& (-1)^{m_1} \left[\frac{(2\ell_1+1) (2\ell_2+1) (2\ell_3+1)}{4\pi} \right]^{1/2} \\ \nonumber
 &\times& \left(\begin{array}{clcr}
@@ -280,7 +280,7 @@ The mean of our estimator for the power spectrum is given by
 \ea
 The next move is to expand and simplify the Kernel
 \ba
-\langle \tilde{C}_{\ell} \rangle &=&    \sum_{\ell_1}  \frac{2\ell_1 +1}{4\pi} \langle C_{\ell_1} \rangle  \sum_{ \ell_3, m_3} w_{ \ell_3, m_3}  \sum_{ \ell_4, m_4} w^{*}_{ \ell_4, m_4}  (2\ell_3+1)^{1/2} (2\ell_4+1)^{1/2} \\ \nonumber \label{eq:line1mcm}
+\langle \tilde{C}_{\ell} \rangle &=&    \sum_{\ell_1}  \frac{2\ell_1 +1}{4\pi} \langle C_{\ell_1} \rangle  \sum_{ \ell_3, m_3} w_{ \ell_3, m_3}  \sum_{ \ell_4, m_4} w^{*}_{ \ell_4, m_4}  (2\ell_3+1)^{1/2} (2\ell_4+1)^{1/2} \label{eq:line1mcm} \\ \nonumber 
 &\times &
 \left(\begin{array}{clcr}
 \ell & \ell_1 & \ell_3\\
@@ -295,7 +295,7 @@ The next move is to expand and simplify the Kernel
 \left(\begin{array}{clcr}
 \ell & \ell_1 & \ell_4\\
 -m & m_{1} & m_{4} \end{array}\right) \\
-&=&    \sum_{\ell_1}  \frac{2\ell_1 +1}{4\pi} \langle C_{\ell_1} \rangle  \sum_{ \ell_3, m_3} w_{ \ell_3, m_3}  \sum_{ \ell_4, m_4} w^{*}_{ \ell_4, m_4}  (2\ell_3+1)^{1/2} (2\ell_4+1)^{1/2} \\ \nonumber \label{eq:line2mcm}
+&=&    \sum_{\ell_1}  \frac{2\ell_1 +1}{4\pi} \langle C_{\ell_1} \rangle  \sum_{ \ell_3, m_3} w_{ \ell_3, m_3}  \sum_{ \ell_4, m_4} w^{*}_{ \ell_4, m_4}  (2\ell_3+1)^{1/2} (2\ell_4+1)^{1/2} \label{eq:line2mcm} \\ \nonumber 
 &\times &
 \left(\begin{array}{clcr}
 \ell & \ell_1 & \ell_3\\
@@ -329,7 +329,7 @@ We would like to switch to an estimator allowing for different weighting of the 
 \ba
  \tilde{C}_{\ell}  &=& \frac{1}{2\ell +1}\sum^{\ell}_{m=-\ell} \rho_{\ell m}  \tilde{a}_{\ell m} \tilde{a}^{*}_{\ell m}  
 \ea
-In that case the last term of equation 41 becomes
+In that case the last term of equation Eq \ref{eq:line1mcm} becomes
 \ba
 \sum_{m,m_1} \rho_{\ell m}
 \left(\begin{array}{clcr}
