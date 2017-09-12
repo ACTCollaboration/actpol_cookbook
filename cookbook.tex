@@ -232,6 +232,8 @@ With  $\Delta_{\bm{\ell},\bm{\ell'}}= 2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})$. 
 
 \subsection{Flat sky vs Full sky}
 
+\subsubsection{Full sky power spectrum estimation}
+
 Similar derivations can be done in the context of full sky power estimation. The math are slighty more complicated as they involve spherical harmonic $Y_{\ell m} (\bm{\hat{n}})$ instead of Fourier modes $e^{i\bm{\ell}\bm{x}}$. It is still interesting to derive the mode coupling matrix for the temperature case, because it will shed light on an important difference between the flat sky and the full sky pipeline. Let's start with the decomposition of the temperature map in spherical harmonic (in practice, we use the python wrapper of the {\it sharp} module which is included in the {\it enlib} library and allow for doing spherical harmonic transform on CAR pixellisation) 
 \ba
 T(\hat{n}) &=& \sum_{\ell m} a_{\ell m} Y_{\ell m}(\hat{n}) \\
@@ -335,7 +337,124 @@ In that case the last term of equation 41 becomes
 \ell & \ell_1 & \ell_4\\
 -m & m_{1} & m_{4} \end{array}\right)
 \ea
-preventing the important simplication. In the Flat-Sky case, we can afford to compute the mode coupling exactly and include the effect of k-mask and azimuthal weighting in a straightforward way. For the full sky case, we are applying the k-mask on data and deconvolve its effect using a transfer function. It seems to give satisfying result for TT and EE, while more investigation is currently done for BB.
+preventing the important simplication. In the Flat-Sky case, we can afford to compute the mode coupling exactly and include the effect of k-mask and azimuthal weighting in a straightforward way. For the full sky case, we are applying the k-mask on data and deconvolve its effect using a transfer function.  \\
+
+Let's now move on to the polarisation case, the polarisation field ${}_{\pm 2} P(\hat{n})= (Q \pm iU)(\hat{n})$ can be decomposed into E and B modes
+\ba
+{}_{\pm 2} P(\hat{n}) = - \sum_{\ell m} (a^{E}_{\ell m} \pm i a^{B}_{\ell m}) {}_{\pm 2} Y_{\ell m} (\hat{n})
+\ea
+where ${}_{\pm 2} Y_{\ell m} (\hat{n})$ are spin-2 spherical harmonics.
+We can express E and B modes as a function of P
+ \ba
+ a^{E}_{\ell m}&=& -\frac{1}{2}  \int \left(  {}_{2} P(\hat{n})  {}_{2} Y^{*}_{\ell m} (\hat{n})+  {}_{-2} P(\hat{n})  {}_{-2} Y^{*}_{\ell m} (\hat{n}) \right) d\hat{n} \\
+ a^{B}_{\ell m}&=& \frac{i}{2}  \int \left(  {}_{2} P(\hat{n})  {}_{2} Y^{*}_{\ell m} (\hat{n})-  {}_{-2} P(\hat{n})  {}_{-2} Y^{*}_{\ell m} (\hat{n}) \right) d\hat{n}
+ \ea
+ or simply
+ \ba
+  a^{E}_{\ell m} \pm i a^{B}_{\ell m} = - \int {}_{\pm 2} P(\hat{n}) {}_{\pm 2} Y^{*}_{\ell m} (\hat{n})d\hat{n}
+ \ea
+including a window function we get
+ \ba
+  \tilde{a}^{E}_{\ell m} \pm i \tilde{a}^{B}_{\ell m} = - \int W(\hat{n}) {}_{\pm 2} P(\hat{n}) {}_{\pm 2} Y^{*}_{\ell m} (\hat{n})d\hat{n}
+ \ea
+ re-expending ${}_{\pm 2} P(\hat{n})$ in spherical harmonic
+ \ba
+   \tilde{a}^{E}_{\ell m} \pm i   \tilde{a}^{B}_{\ell m} =  \sum_{\ell' m'} (a^{E}_{\ell' m'} \pm i a^{B}_{\ell' m'}) \int W(\hat{n}) {}_{\pm 2} Y_{\ell' m'} (\hat{n})  {}_{\pm 2} Y^{*}_{\ell m} (\hat{n})d\hat{n}
+ \ea
+Then
+\ba
+   \tilde{a}^{E}_{\ell m} &= & \frac{1}{2} \sum_{\ell' m'} a^{E}_{\ell' m'} \left[ \int W(\hat{n}) {}_{ 2} Y_{\ell' m'} (\hat{n})  {}_{ 2} Y^{*}_{\ell m} (\hat{n})d\hat{n} + \int W(\hat{n}) {}_{ -2} Y_{\ell' m'} (\hat{n})  {}_{ -2} Y^{*}_{\ell m} (\hat{n})d\hat{n} \right] \\
+ &+& \frac{i}{2} \sum_{\ell' m'}  a^{B}_{\ell' m'} \left[ \int W(\hat{n}) {}_{ 2} Y_{\ell' m'} (\hat{n})  {}_{ 2} Y^{*}_{\ell m} (\hat{n})d\hat{n} -\int W(\hat{n}) {}_{ -2} Y_{\ell' m'} (\hat{n})  {}_{ -2} Y^{*}_{\ell m} (\hat{n})d\hat{n}\right] \\ 
+ &=&  \sum_{\ell' m'} K^{\rm diag}_{\ell m, \ell' m'} a^{E}_{\ell' m'} + i K^{\rm off}_{\ell m, \ell' m'} a^{B}_{\ell' m'}
+\ea
+and 
+
+\ba
+   \tilde{a}^{B}_{\ell m} &= & \frac{-i}{2} \sum_{\ell' m'} a^{E}_{\ell' m'} \left[ \int W(\hat{n}) {}_{ 2} Y_{\ell' m'} (\hat{n})  {}_{ 2} Y^{*}_{\ell m} (\hat{n})d\hat{n} - \int W(\hat{n}) {}_{ -2} Y_{\ell' m'} (\hat{n})  {}_{ -2} Y^{*}_{\ell m} (\hat{n})d\hat{n} \right] \\
+ &+& \frac{1}{2} \sum_{\ell' m'}  a^{B}_{\ell' m'} \left[ \int W(\hat{n}) {}_{ 2} Y_{\ell' m'} (\hat{n})  {}_{ 2} Y^{*}_{\ell m} (\hat{n})d\hat{n} +\int W(\hat{n}) {}_{ -2} Y_{\ell' m'} (\hat{n})  {}_{ -2} Y^{*}_{\ell m} (\hat{n})d\hat{n}\right] \\
+ &=&  \sum_{\ell' m'} -i K^{\rm off}_{\ell m, \ell' m'} a^{E}_{\ell' m'} + K^{\rm diag}_{\ell m, \ell' m'} a^{B}_{\ell' m'}
+\ea
+
+Following a similar derivation than the one presented for the flat sky case, we can obtain the full expression for the mode coupling matrix in the full sky case: 
+\ba
+ \begin{pmatrix}  \tilde{C}_{TT}(\ell) \cr \tilde{C}_{TE}(\ell)\cr \tilde{C}_{TB}(\ell)\cr \tilde{C}_{EE}(\ell)\cr \tilde{C}_{EB}(\ell)\cr \tilde{C}_{BB}(\ell)\cr \end{pmatrix} = \sum_{\ell'} M_{\ell, \ell'} 
+  \begin{pmatrix}  C_{TT}(\ell') \cr C_{TE}(\ell)\cr C_{TB}(\ell')\cr C_{EE}(\ell')\cr C_{EB}(\ell')\cr C_{BB}(\ell')\cr \end{pmatrix}
+\ea
+with
+\ba
+M_{\ell, \ell'}=   
+\begin{pmatrix} 
+M_{TTTT} &
+0 & 
+0 &
+0 & 
+0 & 
+0 & 
+\cr
+0 & 
+M_{TETE} & 
+0 &
+0 & 
+0 & 
+0 & 
+\cr
+0 &
+0 & 
+M_{TBTB} & 
+0 & 
+0 & 
+0 & 
+  \cr
+0 &
+0 & 
+0 &
+M_{EEEE}& 
+0 &
+M_{EEBB} &  
+ \cr
+0 &
+0 & 
+0 &
+0 & 
+M_{EBEB}  &
+0&  
+\cr
+0 &
+0 & 
+0 &
+M_{BBEE} & 
+0  &
+M_{BBBB}&  
+\cr
+\end{pmatrix}
+\ea
+with elements
+\ba
+M^{TTTT}_{\ell \ell'}&=&  \frac{2\ell'+1}{4\pi} B^{2}_{\ell'} \sum_{\ell''} (2\ell''+1) {\cal W}^{TT}_{\ell''}    
+\left(\begin{array}{clcr}
+\ell & \ell' & \ell''\\
+0 & 0 & 0 \end{array}\right)^{2}
+ \nonumber \\
+M^{TETE}_{\ell \ell'}&=& M^{TBTB}_{\ell \ell'}= \frac{2\ell'+1}{4\pi}B^{2}_{\ell'}\sum_{\ell''} (2\ell''+1) {\cal W}^{PT}_{\ell''}    
+\left(\begin{array}{clcr}
+\ell & \ell' & \ell''\\
+0 & 0 & 0 \end{array}\right)
+\left(\begin{array}{clcr}
+\ell & \ell' & \ell''\\
+2 & -2 & 0 \end{array}\right) \nonumber \\
+M^{EEEE}_{\ell \ell'} &=&M^{BBBB}_{\ell \ell'}=  \frac{2\ell'+1}{4\pi} B^{2}_{\ell'} \sum_{\ell''} (2\ell''+1) {\cal W}^{P}_{\ell''}
+\left(\begin{array}{clcr}
+\ell & \ell' & \ell''\\
+2 & -2 & 0 \end{array}\right)^{2}
+\frac{1 + (-1)^{\ell+ \ell' + \ell''}}{2} \nonumber \\
+M^{EEBB}_{\ell \ell'} &=&M^{BBEE}_{\ell \ell'}=  \frac{2\ell'+1}{4\pi} B^{2}_{\ell'} \sum_{\ell''} (2\ell''+1) {\cal W}^{P}_{\ell''}
+\left(\begin{array}{clcr}
+\ell & \ell' & \ell''\\
+2 & -2 & 0 \end{array}\right)^{2}
+\frac{1 - (-1)^{\ell+ \ell' + \ell''}}{2} \nonumber \\
+M^{EBEB}_{\ell \ell'}&=& M^{EEEE}_{\ell \ell'}-M^{EEBB}_{\ell \ell'} 
+\ea
+
 
 \subsection{Azimuthal weighting}
 
