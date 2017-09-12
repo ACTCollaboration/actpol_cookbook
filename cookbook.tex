@@ -234,7 +234,7 @@ With  $\Delta_{\bm{\ell},\bm{\ell'}}= 2(\phi_{\bm{\ell'}} - \phi_{\bm{\ell}})$. 
 
 \subsection{Flat sky vs Full sky}
 
-\subsubsection{Full sky power spectrum estimation}
+\subsubsection{Full sky power spectrum estimation and the problem with azimuthal weighting}
 
 Similar derivations can be done in the context of full sky power estimation. The math are slighty more complicated as they involve spherical harmonic $Y_{\ell m} (\bm{\hat{n}})$ instead of Fourier modes $e^{i\bm{\ell}\bm{x}}$. It is still interesting to derive the mode coupling matrix for the temperature case, because it will shed light on an important difference between the flat sky and the full sky pipeline. Let's start with the decomposition of the temperature map in spherical harmonic (in practice, we use the python wrapper of the {\it sharp} module which is included in the {\it enlib} library and allow for doing spherical harmonic transform on CAR pixellisation) 
 \ba
@@ -456,6 +456,8 @@ M^{EEBB}_{\ell \ell'} &=&M^{BBEE}_{\ell \ell'}=  \frac{2\ell'+1}{4\pi} B^{2}_{\e
 \frac{1 - (-1)^{\ell+ \ell' + \ell''}}{2} \nonumber \\
 M^{EBEB}_{\ell \ell'}&=& M^{EEEE}_{\ell \ell'}-M^{EEBB}_{\ell \ell'} 
 \ea
+
+\subsubsection{Comparaison between full sky and flat sky power spectra}
 
 
 \subsection{Azimuthal weighting}
