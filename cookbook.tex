@@ -42,6 +42,22 @@ editing/asking clarification in other people sections: \skn{Sigurd}, \TIB{Thibau
 
 \section{TOD cut and calibration}
 
+The cuts and calibration pipelines are using the moby2 framework. We can divide it in three steps:
+\begin{itemize}
+\item data selection,
+\item relative calibration of detectors and TODs to physiscal units,
+\item absolute calibration to CMB temperature.
+\end{itemize}
+The first two steps are performed at the individual TOD level, using detector properties measurements (IV, Bias Step, dark detectors, thermometers) and sky signal, mostly dominated by the atmosphere. The last step is performed a posteriori using planet measurements for the whole season, planet and atmosphere models, and beam characterization.
+
+\subsection{Data selection (\emph{cuts})}
+
+\subsection{Relative calibration}
+
+\subsection{Absolute calibration}
+
+
+
 \section{Beams, pointing model, time constant, half-wave plate}
 
 \section{Point sources, mask and cluster studies}
