@@ -28,6 +28,7 @@
 % Personal colors defined here
 \newcommand{\skn}[1]{{\color{red}#1}}
 \newcommand{\TIB}[1]{{\color{blue}#1}}
+\newcommand{\assume}[1]{{\bf#1}}
 
 \begin{document}
 
@@ -62,8 +63,81 @@ The first two steps are performed at the individual TOD level, using detector pr
 
 \section{Point sources, mask and cluster studies}
 
-
 \section{Map making (Sigurd and Simone)}
+There are two mapmakers, Ninkasi and Enki. Both are maximum-likelihood mapmakers,
+and only differ in implementation details. Ninkasi is written in Octave + C++ + C,
+while Enki is written in Python + Fortran.
+
+\subsection{Maximum-likelihood mapmaking}
+As our telescope scans across the sky the detector signal is continuously read out,
+resulting in time-ordered data (TOD), which consists of an equi-spaced set of samples
+for each detector. If we assume that
+\begin{enumerate}
+	\item \assume{The detector response is linear}
+	\item \assume{The observed sky is nearest-neighbor pixelized with the same pixels as our output map}
+	\item \assume{The noise and signal are independent}
+\end{enumerate}
+then we can model the data as
+\begin{align}
+	d &= Pm + n
+\end{align}
+where $d$ is the length $N_S$ vector of all the samples from all the
+TODs and detectors, $P$ is the $N_S\times N_P$ response
+matrix matrix (which includes the effect of detector gain and pointing),
+$m$ is the length $N_P$ vector of sky pixels we want to solve for, and
+$n$ is the length $N_P$ vector of noise samples with covariance $N$. Here $N_S$ is the
+total number of samples, and $N_P$ is the total number of pixel degrees
+of freedom, which is usually $N_P = N_\textrm{stokes}N_\textrm{pix}$.
+
+As currently described, $P$ would have to include the effect of both the
+beam and detector time constants. However, if we additionally assume that
+\assume{the beam is circular and time-independent}, then it can be factorized out
+of $P$ and absorbed into $m$, which would now represent the beam-convoluted sky.
+If we further assume that \assume{$d$ is the time constant deconvolved TOD}, then $P$ also needs not
+concern itself with time constants.
+This is the approach that is almost always used because it greatly simplifies
+the pointing matrix. Before, every sample would get signal contributions from
+every pixel the beam touches at that sample or any nearby samples, but with this
+simplification each sample only needs to concern itself with a single pixel,
+making $P$ extremely sparse.
+
+With these assumptions in place, we can find the map $m$ that minimizes the
+residual mean error.
+\begin{align}
+	\frac{\partial\chi^2}{\partial m} &= \frac{\partial}{\partial m}(d-Pm)^T N^{-1}(d-Pm) = 0 \Rightarrow \\
+	2(d-Pm)^T N^{-1}d &= 0 \Rightarrow
+	m = (P^TN^{-1}P)^{-1} P^TN^{-1} d
+\end{align}
+If the noise is gaussian, which is usually a good approximation, then this is also
+the maximum-likelihood solution.
+
+The equation above, called the map-making equation, is in a sense as simple
+as they get - it's just a variant of $Ax=b$. But matrices involved here are huge.
+For ACT, typical numbers are $N_P$ = $10^7$ -- $10^9$ and $N_S \sim 10^{13}$.
+That means that we can't even compute and store these matrices.
+
+Thankfully, it's possible to solve $Ax=b$ without ever explicitly computing or
+inverting $A$. The $x$ that solves the equation is also the $x$ that minimizes
+the quadratic form $(Ax-b)^T(Ax-b)$. This is just a multidimensional parapola.
+A simple way of finding its minimum is to just start somewhere, and then keep
+stepping in the direction that has the strongest gradient downwards. This is
+called gradient descent, and is the basic idea behind our mapmakers. The actual
+minimization method we use is called Conjugate Gradients, and is a bit more
+fancy in its choice of direction to step in, but it's qualitatively the same.
+
+The important point here is that evaluating the gradient only requires one to
+be able to perform the matrix-vector product $Ax$. And for sparse matrices like
+ours, that is much simpler than computing the elements of $A$. To be explicit,
+we have $A = P^TN^{-1}P$. A matrix times a vector is a new vector, so to
+perform $Ax$ we simply need to be able to perform these three operations:
+\begin{enumerate}
+	\item $Px$ (map-to-tod): This corresponds to looking up which pixel each sample hits and reading off its value.
+	\item $N^{-1}d$ (noise weighting): If \assume{the noise is (piecewise) stationary},
+		then $N$ is (blockwise) diagonal-in-fourier-space, making this product
+		about as simple as a fourier transform.
+	\item $P^Td$ (tod-to-map): This adds each sample's value to the pixel it hits.
+\end{enumerate}
+These operations form the core of the mapmaker, and are the main performance bottlenecks.
 
 \section{Power spectra (Thibaut and Steve)}
 
