@@ -1,7 +1,7 @@
 \documentclass[a4paper, 11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx,wrapfig,subfigure,amsmath,amssymb,epsfig,bm}
-\usepackage{listings,textcomp,color,geometry}
+\usepackage{listings,textcomp,color,geometry,siunitx}
 \geometry{hmargin=2cm, vmargin=2cm}
 
 \def\Box{\mathord{\dalemb{7.9}{8}\hbox{\hskip1pt}}}
@@ -138,6 +138,141 @@ perform $Ax$ we simply need to be able to perform these three operations:
 	\item $P^Td$ (tod-to-map): This adds each sample's value to the pixel it hits.
 \end{enumerate}
 These operations form the core of the mapmaker, and are the main performance bottlenecks.
+
+\subsection{The data and metadata}
+ACT time-ordered data is stored in files containing about 11 minutes of data for a single
+array, and this is also the unit of data we use in the mapmaker. Each such "TOD" is assumed
+to be independent of the others, and its noise is assumed to be stationary. Finding and
+reading the tod and its associated metadata, and properly calibrating all of these, is one
+of the main complications of the mapmaker.
+
+\subsubsection{Enki}
+\paragraph{TOD database}
+Before any maps can be made, Enki needs a database listing the available tods and their properties.
+This is made by annotating Loic's selectedTODs files with tags, and this is done in two steps.
+In the first step, tags are assigned on a selectedTOD-file basis manually. An example of what this
+looks like can be seen here:
+\begin{verbatim}
+p  = /home/r/rbond/lmaurin/depot/SelectedTODs
+# Season 1
+{p}/mr2_pa1_s13/selectedTODs_deep1.txt        pa1 s13 cmb deep1
+{p}/mr2_pa1_s13/selectedTODs_deep2.txt        pa1 s13 cmb deep2
+{p}/mr2_pa1_s13/selectedTODs_deep3.txt        pa1 s13 cmb deep3
+{p}/mr2_pa1_s13/selectedTODs_deep4.txt        pa1 s13 cmb deep4
+{p}/mr2_pa1_s13/selectedTODs_deep5.txt        pa1 s13 cmb deep5
+{p}/mr2_pa1_s13/selectedTODs_deep6.txt        pa1 s13 cmb deep6
+{p}/mr2_pa1_s13/selectedTODs_wide2.txt        pa1 s13 cmb wide2
+{p}/mr2_pa1_s13/selectedTODs_galaxy.txt       pa1 s13 galaxy galaxy0
+{p}/mr2_pa1_s13/selectedTODs_galaxy1.txt      pa1 s13 galaxy galaxy1
+{p}/mr2_pa1_s13/selectedTODs_galaxy2.txt      pa1 s13 galaxy galaxy2
+{p}/mr2_pa1_s13/selectedTODs_galaxy_test.txt  pa1 s13 galaxy galaxy_test
+{p}/mr2_pa1_s13/selectedTODs_mars.txt         pa1 s13 planet mars
+{p}/mr2_pa1_s13/selectedTODs_jupiter.txt      pa1 s13 planet jupiter
+{p}/mr2_pa1_s13/selectedTODs_saturn.txt       pa1 s13 planet saturn
+{p}/mr2_pa1_s13/selectedTODs_uranus.txt       pa1 s13 planet uranus
+{p}/mr2_pa1_s13/selectedTODs_neptune.txt      pa1 s13 planet neptune
+{p}/mr2_pa1_s13/selectedTODs_tau_a.txt        pa1 s13 tau_a
+\end{verbatim}
+In the second step, a program runs through all the tods in the first step, and tries
+to load the boresight pointing, APEX weather data, etc., and uses this to annotate each
+tod with information such as PWV, day vs. night, HWP or non-HWP, bounding box on the sky, etc.
+
+After the TOD database has been built, it can be queried for TOD ids using compact query strings.
+For example \texttt{s13,pa1,deep1,night} returns the ids of the 815 selected TODs from the 2013 season
+that target deep1 during the night, and use pa1; \texttt{pa2,cmb,hits([1.55,-6.39])} returns
+the 324 selected pa4 TODs that hit the strong source at RA=\ang{1.55}, dec=\ang{-6.39}, and
+which targeted any CMB-related patch, across all seasons; and \texttt{pa2,boss,pwv<0.5} would
+give you the 1643 selected pa2 TODs that target the BOSS North patch which happened while
+APEX PWV was less than 0.5 mm. Under the hood the queries are rewritten to a python
+expression and evaluated, so you can do stuff like \texttt{(sin(0.01*t)>0.9)|(el>az)} if you should need to.
+By default only Loic-selected TODs for which the boresight pointing could be read are returned,
+but you can override this by passing the \texttt{/all} flag. You can also restrict based on a list
+of files, such as \texttt{s15,pa3,+f090,deep56,night,~@blacklist.txt}. The + syntax specifies a tag,
+which doesn't change the set of tods returned, but is attached to the returned ids and used to select
+subsets of detectors in a later step.
+
+\paragraph{Metadata database}
+For each TOD id, we need to know where to find both the TOD itself and all the associated metadata.
+This is done in two steps. First, a set of useful variables are derived from the TOD id. A typical
+TOD id looks like \texttt{1447066511.1447098871.ar2}, from which we derive
+\begin{verbatim}
+season_ends = [1390000000, 1421000000, 1454000000, 1490000000, 1519862400]
+pa     = int(id[-1])                # array number: 2
+t5     = int(id[:5])                # first 5 digits: 14470
+t      = int(id.split(".")[0])      # starting ctime: 1447066511
+sidx   = 1+find(season_ends, t)     # season index: 3
+syear  = 2013+find(season_ends, t)  # season year: 2015
+season = 13+find(season_ends, t)    # season: 15
+year   = ctime2date(t, -9, "%Y")    # local year:  2015
+month  = ctime2date(t, -9, "%m")    # local month: 11
+day    = ctime2date(t, -9, "%d")    # local day: 9
+Uyear  = ctime2date(t,  0, "%Y")    # UTC year: 2015
+Umonth = ctime2date(t,  0, "%m")    # UTC month: 11
+Uday   = ctime2date(t,  0, "%d")    # UTC day: 9
+\end{verbatim}
+These variables are then used to deduce the file locations using a file with declarations like this:
+\begin{verbatim}
+mats    = "/project/r/rbond/mhasse/actpol/depots/shared"
+marius  = "/project/r/rbond/mlungu/actpol/depots/mlungu"
+loic    = "/project/r/rbond/lmaurin/depot"
+
+tod         = "/project/r/rbond/actpol/data/season{sidx}/merlin/{t5}/{id}.zip"
+gain        = "{loic}/Calibration/mr2_pa{pa}_s{season}/{t5}/{id}.cal"
+gain_correction = "{mats}/TODAbsCal/todcal_170817.hdf/todcal_170817"
+if season == 13: point_template = "{mats}/RelativeOffsets/template_ar1_130821s.txt"
+if season == 14: point_template = "{marius}/RelativeOffsets/template_ar{pa}_150201us.txt"
+if season == 15: point_template = "{marius}/RelativeOffsets/template_ar{pa}_170116us.txt"
+if season == 16: point_template = "{marius}/RelativeOffsets/template_ar{pa}_s16_170131.txt"
+point_offsets = "{mats}/TODOffsets/tod_offsets_171101.txt"
+\end{verbatim}
+and so on. Using this, we can find the location of all the metadata for any given TOD.
+
+\paragraph{TOD preparation}
+This is roughly what is done when reading in a TOD in Enki.
+\begin{enumerate}
+\item Information on the telescope location and general array and tag definitons are read.
+\item The boresight pointing, consisting of ctime, azimuth and elevation for each sample
+	in the TOD, is read. Az and el are converted into radians, and ``unwound'' by adding
+		multiples of $2\pi$ as necessary such that no angle wraps occur. They are then linearly
+		gapfilled if either the boresight flags are not 0 or 16, there are short glitches in
+		the pointing, or if the elevation deviates from its median value by more than \ang{0.5}.
+\item Relative gains, absolute gains and mce filter parameters are read, and used to derive the
+	total gain. If \texttt{gain\_mode} is ``direct'', the MCE filter gain is assumed to be included
+		in the absolute gain, so the total gain is just $\textrm{gain}_\textrm{tot} =
+		\textrm{gain}_\textrm{abs} \cdot \textrm{gain}_\textrm{rel}$. Otherwise, the MCE filter gain
+		also needs to be included: $\textrm{gain}_\textrm{tot} =
+		\textrm{gain}_\textrm{abs} \cdot \textrm{gain}_\textrm{rel} / \textrm{gain}_\textrm{mce}$.
+\item Polarization angles are read.
+\item Time constants are read.
+\item Half-wave plate information is read, and used to build the corresponding per-sample
+	spin-2 polarization rotation matrix.
+\item Cuts are read.
+\item Relative and absolute pointing offsets are read and added to get the total pointing offset.
+	They are then combined with the boresight elevation to produce the az,el offsets of each detector.
+\item The number of samples and detectors in the TOD itself is read, and the optimal length for
+	fourier transforms is computed.
+\item The point source database, beam profile and buddy decomposition are read.
+\item The TOD frequency spike list is read.
+\item The set of detectors and samples to be considered are restricted to the intersection of
+	those available from all the previous reads.
+\item A set of automatic cuts are applied. These include cutting periods
+	at the start and end of the TOD where the telescope isn't moving, cutting
+		0.5 s at each end of the TOD and cutting samples within \ang{0.2} of planets.
+		Detectors with more than 20\% samples cut or more than 50 individual cut
+		ranges are then cut. And finally the whole TOD is cut if it is shorter
+		than 3.75 minutes or has less than 100 active detectors left.
+\item The actual TOD samples are read (for the relvant detectors only). The TOD is integer-divided by
+	128 and then multiplied by 8 to go to DAC units, after which it is multiplied by the total gain to get
+		it in \si{\micro\kelvin}. Cut regions are then gapfilled using Jon's eigenmode gapfiller, and a linear trend is removed to
+		make the average of the first and last 8 samples match up. This is to avoid implied discontinuities
+		when fourier transforming the TOD.
+\item The TOD is then optionally filtered to remove 1 polynomial mode in azimuth
+	per \ang{3} of azimuth sweep width and an order 10 polynomial in time. These
+		are fit jointly.
+\end{enumerate}
+
+\subsection{TOD noise model}
+Ninkasi and Enki both use Jon's eigenvector noise model.
 
 \section{Power spectra (Thibaut and Steve)}
 
