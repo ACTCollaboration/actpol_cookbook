@@ -51,9 +51,89 @@ The cuts and calibration pipelines are using the moby2 framework. We can divide 
 \end{itemize}
 The first two steps are performed at the individual TOD level, using detector properties measurements (IV, Bias Step, dark detectors, thermometers) and sky signal, mostly dominated by the atmosphere. The last step is performed a posteriori using planet measurements for the whole season, planet and atmosphere models, and beam characterization.
 
+
+
 \subsection{Data selection (\emph{cuts})}
+The general philosophy of the data selection is to characterize each detector behaviour in two different frequency bands. At the lowest frequencies, we expect the dominant signal to be the atmosphere, and thus the detectors to show a good correlation between them (at first order the atmosphere is common to the whole array). It also provides a relative calibrator. At the highest frequencies, the signal is dominated by the detector noise, expected to be white.
+
+\subsubsection{Data description}
+\subsubsection{Pre-processing}
+A few steps of pre-processing are applied before running the core of the cuts pipeline. They are detailed here:
+\begin{itemize}
+	\item trim the TOD: some processes tend to warm up the focal plane, requiring a security buffer time before the temperature equilibrium is reached again. It is the case for IV curves and re-biasing for example. We thus discard all samples too close to these events. The buffer times are defined in the input parameter file as \emph{IV\_wait} and \emph{rebias\_wait}; we have been using respectively $220$s and $25$s after IV and re-biasing events.
+	\item substract \emph{$A(\chi)$}: if an $A(\chi)$ model is provided in the parameter file, it will be deprojected. It hasn't been used yet as test results were not really convincing.
+	\item cut mce frame errors: cut glitches from readout.
+	\item cut planets and sources: planets and sources provided in the parameter file will be masked. The mask is a circle around the theoretical position of the planet/source. Radius of the mask and pointing models are needed as inputs and defined in the parameter file. These cuts are stored under \emph{tag\_source} and \emph{tag\_planet}.
+	\item cut glitches: timelines are bandpass filtered and glitches are flagged as everything above a threshold defined relatively to the noise level. Parameters of the filter and threshold are defined in the parameter file. This cut (plus the mce frame error) is stored as \emph{tag\_partial}.
+	\item remove the mean of the TOD: as the absolute scale of the data is irrelevant, we remove the mean (or median if specified in the parameter file) of each detector timeline.
+	\item detrend: a straight line between the first and last sample of the timelines is removed to ensure boundary conditions for the FFT. Lowest frequencies are filtered out later on anyway. \emph{detrend = True} has to be explicitly specified in the parameter file, as it is set to \emph{False} by default.
+	\item remove filter gain: if \emph{remove\_filter\_gain = True} is specified in the parameter file, the filter gain will be removed. Default is \emph{False}.
+	\item downsample: timelines can be downsampled by a {}factor $2^{n\_downsample}$ where $n\_downsample$ is specified in the parameter file.
+	\item find zero detectors: discard detectors that have zero signal.
+	\item find jumps: discard detectors that have jumps in the timeline.
+	\item calibrate to pW: use the responsivity from Bias Step (or IV) and the flatfield to calibrate the TODs to pW. Responsivity and flatfields to use are defined in the parameter file.
+	\item FFT: get the fourier transform of the timestreams.
+\end{itemize}
+
+\subsubsection{Low frequency}
+After these pre-processing steps, we perform the low frequency part of the analysis, in which we want to use the atmospheric signal to select live detectors and get a relative calibration for them (see \ref{subsec:relcal}). First we'll describe the procedure and then see a couple of modules that can be applied to the procedure.
+
+\subsubsection*{General procedure}
+\begin{itemize}
+	\item Select only the low frequency modes of the data ($\sim [0.01,0.1]$Hz).
+	\item Compute the norm of the data for each detector.
+	\item Compute the full correlation matrix for all detectors.
+	\item Pre-select a group of "good" detectors based on this matrix (see ??? for a description).
+	\item Compute the SVD of the pre-selected data.
+	\item For each detector, compute the correlation (\emph{corr}) to the main mode (or the two main modes) of the SVD, and the coeficient/gain (\emph{gain}).
+	\item Compute the RMS of the data after de-projecting $n$ modes (usually 3) from the full data SVD. We call it Drift Error (\emph{DE}).
+\end{itemize}
+
+From this low-frequency analysis, we keep three criteria that are \emph{corr}, \emph{gain} and \emph{DE} that will be used to select valid detectors. An extra criteria  \emph{darkRatio} can be computed if the thermal contamination module (see below) is turned on.
+
+
+\subsubsection*{Thermal contamination}
+Dark detectors can be used to clean the live detectors from contamination. At low frequency, we mostly expect this contamination to be thermal, and it can contribute to the signal to a comparable level as the atmosphere (e.g. at low PWV). If the module is turned on, we take the SVD of the normalized dark detectors in the same frequency range, and de-project the first $n$ modes from the live data. The number of modes to be de-projected as well as other parameters are defined in the parameter file in the \emph{darkModesParams} dictionary.
+
+In the case it is applied, a \emph{darkRatio} criteria is outputed for later selection. It is the ratio of the norm of the data after de-projecting de dark modes and the norm before.
+
+\subsubsection*{Scan Frequency rejection}
+If the scan frequency is within the chosen low frequency window, we can mask it using the \emph{cancelSync = True} parameter. It will put to $0$ the data at scan frequency (and its harmonics).
+
+\subsubsection*{Pre-selection of good detectors}
+Two methods can be used to pre-select the group of detectors to be used to extract the common mode.
+\begin{itemize}
+	\item \textbf{median} uses a two iteration selection based on the correlation matrix, throwing away the detectors with an average correlation to the others lower than a threshold that is relatively low at the first iterationand then increased at the second.
+	\item \textbf{groups} uses an iterative \emph{friends-of-friends} method to form groups of similar detectors. The main group is then selected. The method relies on a fine tuning of its parameters are defined in the parameter files.
+\end{itemize}
+
+\subsubsection*{Multi-frequency analysis}
+To avoid step effects due to the choice of the frequency band, we can use $N$ frequency bands using a sliding window and average the results from them. The size of the window, the size and number of steps and the initial frequency are defined in the paramaeter file.
+
+\subsubsection*{Multichroic arrays}
+For multichroic arrays, separate frequencies can be treated completely separately using the parameter \emph{separateFreqs}. At the moment we are treating them separately.
+
+
+
+\subsubsection{High frequency}
+At high frequency, we are interested in the noise properties. We use only the modes of the data in a high frequency range ($\sim [10,20]Hz$). We then de-project the $n$ main modes (usually 10) from the SVD decomposition of the data, and then compute the RMS, skewness and kurtosis for each detector (three more criteria \emph{rms,skew and kurtosis}).
+
+Optionally (we usually do), the same statistics can be computed on chunck of the timestreams, for subscans within the TOD. This allows us to cut only these chunks and not the whole detector timeline.
+
+
+\subsubsection{Mid frequency}
+An extra criteria is computed at mid-frequency ($\sim[0.3,1]$Hz), mid-frequncy error (\emph{MFE}), as the RMS of the data after de-projecting the $n$ main modes (usually 8) from a SVD decomposition.
+
+\subsubsection{Detector cut}
+Based on the 7 (or 8) criteria defined previously (\emph{corr, gain, DE, (darkRatio), rms, skew, kurt} and \emph{MFE}), we can cut the entire timestream for a detector. The thresholds can be set either with respect to the full season statistics (absolute threshold) or the particular TOD statistics (relative threshold). The values are set for each array and season after looking at the season distributions. Each criteria is treated independtly and will pass or fail the thresholds. If any criteria fails, the detector is cut. Usually, the most stringent criteria are \emph{corr, gain, (darkRatio)} and \emph{rms}.
+
+We also set a minimal fraction of the detector timestream: if more than $40\%$ of the samples are cut (due to glitches, mce frame error, chunks being cut because of rms, skewness or kurtosis), the detector is cut.
+
+\susubsection{TOD cut}
+Finally, we can decide to cut the entire TOD (all detectors) based on number of detectors being cut, weather condition, or ranges of times that we want to exclude (e.g. we exclude TODs too close to DR cycles).
 
 \subsection{Relative calibration}
+\label{subsec:relcal}
 
 \subsection{Absolute calibration}
 
