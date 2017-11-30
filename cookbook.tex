@@ -46,7 +46,7 @@ editing/asking clarification in other people sections: \skn{Sigurd}, \TIB{Thibau
 The cuts and calibration pipelines are using the moby2 framework. We can divide it in three steps:
 \begin{itemize}
 \item data selection,
-\item relative calibration of detectors and TODs to physiscal units,
+\item relative calibration of detectors and TODs to physical units,
 \item absolute calibration to CMB temperature.
 \end{itemize}
 The first two steps are performed at the individual TOD level, using detector properties measurements (IV, Bias Step, dark detectors, thermometers) and sky signal, mostly dominated by the atmosphere. The last step is performed a posteriori using planet measurements for the whole season, planet and atmosphere models, and beam characterization.
@@ -54,7 +54,7 @@ The first two steps are performed at the individual TOD level, using detector pr
 
 
 \subsection{Data selection (\emph{cuts})}
-The general philosophy of the data selection is to characterize each detector behaviour in two different frequency bands. At the lowest frequencies, we expect the dominant signal to be the atmosphere, and thus the detectors to show a good correlation between them (at first order the atmosphere is common to the whole array). It also provides a relative calibrator. At the highest frequencies, the signal is dominated by the detector noise, expected to be white.
+The general philosophy of the data selection is to characterize each detector behavior in two different frequency bands. At the lowest frequencies, we expect the dominant signal to be the atmosphere, and thus the detectors to show a good correlation between them (at first order the atmosphere is common to the whole array). It also provides a relative calibrator. At the highest frequencies, the signal is dominated by the detector noise, expected to be white.
 
 \subsubsection{Data description}
 \subsubsection{Pre-processing}
@@ -76,6 +76,7 @@ A few steps of pre-processing are applied before running the core of the cuts pi
 \end{itemize}
 
 \subsubsection{Low frequency}
+\label{subsubsection:lfcuts}
 After these pre-processing steps, we perform the low frequency part of the analysis, in which we want to use the atmospheric signal to select live detectors and get a relative calibration for them (see \ref{subsec:relcal}). First we'll describe the procedure and then see a couple of modules that can be applied to the procedure.
 
 \subsubsection*{General procedure}
@@ -83,9 +84,9 @@ After these pre-processing steps, we perform the low frequency part of the analy
 	\item Select only the low frequency modes of the data ($\sim [0.01,0.1]$Hz).
 	\item Compute the norm of the data for each detector.
 	\item Compute the full correlation matrix for all detectors.
-	\item Pre-select a group of "good" detectors based on this matrix (see ??? for a description).
+	\item Pre-select a group of "good" detectors based on this matrix (see below for a description).
 	\item Compute the SVD of the pre-selected data.
-	\item For each detector, compute the correlation (\emph{corr}) to the main mode (or the two main modes) of the SVD, and the coeficient/gain (\emph{gain}).
+	\item For each detector, compute the correlation (\emph{corr}) to the main mode (or the two main modes) of the SVD, and the coefficient/gain (\emph{gain}).
 	\item Compute the RMS of the data after de-projecting $n$ modes (usually 3) from the full data SVD. We call it Drift Error (\emph{DE}).
 \end{itemize}
 
@@ -95,7 +96,7 @@ From this low-frequency analysis, we keep three criteria that are \emph{corr}, \
 \subsubsection*{Thermal contamination}
 Dark detectors can be used to clean the live detectors from contamination. At low frequency, we mostly expect this contamination to be thermal, and it can contribute to the signal to a comparable level as the atmosphere (e.g. at low PWV). If the module is turned on, we take the SVD of the normalized dark detectors in the same frequency range, and de-project the first $n$ modes from the live data. The number of modes to be de-projected as well as other parameters are defined in the parameter file in the \emph{darkModesParams} dictionary.
 
-In the case it is applied, a \emph{darkRatio} criteria is outputed for later selection. It is the ratio of the norm of the data after de-projecting de dark modes and the norm before.
+In the case it is applied, a \emph{darkRatio} criteria is outputted for later selection. It is the ratio of the norm of the data after de-projecting the dark modes and the norm before.
 
 \subsubsection*{Scan Frequency rejection}
 If the scan frequency is within the chosen low frequency window, we can mask it using the \emph{cancelSync = True} parameter. It will put to $0$ the data at scan frequency (and its harmonics).
@@ -125,15 +126,31 @@ Optionally (we usually do), the same statistics can be computed on chunck of the
 An extra criteria is computed at mid-frequency ($\sim[0.3,1]$Hz), mid-frequncy error (\emph{MFE}), as the RMS of the data after de-projecting the $n$ main modes (usually 8) from a SVD decomposition.
 
 \subsubsection{Detector cut}
-Based on the 7 (or 8) criteria defined previously (\emph{corr, gain, DE, (darkRatio), rms, skew, kurt} and \emph{MFE}), we can cut the entire timestream for a detector. The thresholds can be set either with respect to the full season statistics (absolute threshold) or the particular TOD statistics (relative threshold). The values are set for each array and season after looking at the season distributions. Each criteria is treated independtly and will pass or fail the thresholds. If any criteria fails, the detector is cut. Usually, the most stringent criteria are \emph{corr, gain, (darkRatio)} and \emph{rms}.
+Based on the 7 (or 8) criteria defined previously (\emph{corr, gain, DE, (darkRatio), rms, skew, kurt} and \emph{MFE}), we can cut the entire timestream for a detector. The thresholds can be set either with respect to the full season statistics (absolute threshold) or the particular TOD statistics (relative threshold). The values are set for each array and season after looking at the season distributions. Each criteria is treated independently and will pass or fail the thresholds. If any criteria fails, the detector is cut. Usually, the most stringent criteria are \emph{corr, gain, (darkRatio)} and \emph{rms}.
 
-We also set a minimal fraction of the detector timestream: if more than $40\%$ of the samples are cut (due to glitches, mce frame error, chunks being cut because of rms, skewness or kurtosis), the detector is cut.
+We also set a minimal fraction of the detector time stream: if more than $40\%$ of the samples are cut (due to glitches, mce frame error, chunks being cut because of rms, skewness or kurtosis), the detector is cut.
 
-\susubsection{TOD cut}
+\subsubsection{TOD cut}
 Finally, we can decide to cut the entire TOD (all detectors) based on number of detectors being cut, weather condition, or ranges of times that we want to exclude (e.g. we exclude TODs too close to DR cycles).
 
 \subsection{Relative calibration}
 \label{subsec:relcal}
+Each TOD and each detector gets recorded in an arbitrary unit. The relative calibration aims at bringing all the data to a common, physical unit. It is composed of three aspects:
+\begin{itemize}
+	\item detector to detector relative calibration,
+	\item TOD to TOD relative calibration,
+	\item data acquisition unit (DAQ) to power (pW).
+\end{itemize}
+We describe our calibration with the following expression:
+\begin{equation}
+	d^{pW} = d^{DAQ} * R * ff
+\end{equation}
+where $R$ is the intrinsic responsivity of the detector (converting the readout count to actual power deposited on the detector) and $ff$ is the optical attenuation. We have two main ways of evaluating the intrinsic responsivity of the detectors, using IV curves and Bias Step measurements. Nevertheless, the responsivity can vary relatively fast, in particular when the loading on the detectors is varying due to PWV variations, and we need to assess these variations between two responsivity measurements. Moreover, studies of IV and BS responsivities has shown some discrepancies between the two measurements, and led us to distrust the measurements for some detectors. We thus need to add another calibrator to our calibration scheme. Due to its dominance in the signal, we chose to use the atmosphere as a relative calibrator to correct for the BS responsivity. In the end, our calibration scheme is:
+\begin{equation}
+	d^{pW} = d^{DAQ} * R_{BS} * g_{atm} * ff
+\end{equation}
+where $R_{BS}$ is the BS responsivity and $g_{atm}$ is the atmospheric corrective gain. The atmospheric corrective gains are computed from the atmosphere as the gain relative to the common mode as described in \ref{subsubsection:lfcuts}, normalized by the average gains of a set of detectors for which we trust the BS responsivity measurements. This ensure both a correct flat-fielding of the detectors within a TOD (they are all calibrated to see the same atmosphere) and the consistency TOD to TOD (from the normalization to our set of good detectors).
+	
 
 \subsection{Absolute calibration}
 
@@ -873,3 +890,4 @@ Note that the $C_{xy}$ here is evaluated at the point in the chain, rather than 
 \end{document}
 
 
+                                                                                     
