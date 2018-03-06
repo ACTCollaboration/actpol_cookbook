@@ -147,10 +147,25 @@ We describe our calibration with the following expression:
 \end{equation}
 where $R$ is the intrinsic responsivity of the detector (converting the readout count to actual power deposited on the detector) and $ff$ is the optical attenuation. We have two main ways of evaluating the intrinsic responsivity of the detectors, using IV curves and Bias Step measurements. Nevertheless, the responsivity can vary relatively fast, in particular when the loading on the detectors is varying due to PWV variations, and we need to assess these variations between two responsivity measurements. Moreover, studies of IV and BS responsivities has shown some discrepancies between the two measurements, and led us to distrust the measurements for some detectors. We thus need to add another calibrator to our calibration scheme. Due to its dominance in the signal, we chose to use the atmosphere as a relative calibrator to correct for the BS responsivity. In the end, our calibration scheme is:
 \begin{equation}
+\label{eqn_relcal}
 	d^{pW} = d^{DAQ} * R_{BS} * g_{atm} * ff
 \end{equation}
-where $R_{BS}$ is the BS responsivity and $g_{atm}$ is the atmospheric corrective gain. The atmospheric corrective gains are computed from the atmosphere as the gain relative to the common mode as described in \ref{subsubsection:lfcuts}, normalized by the average gains of a set of detectors for which we trust the BS responsivity measurements. This ensure both a correct flat-fielding of the detectors within a TOD (they are all calibrated to see the same atmosphere) and the consistency TOD to TOD (from the normalization to our set of good detectors).
+where $R_{BS}$ is the BS responsivity and $g_{atm}$ is the atmospheric corrective gain. The atmospheric corrective gains are computed from the atmosphere as the gain relative to the common mode as described in \ref{subsubsection:lfcuts}, normalized by the average gains of a set of detectors for which we trust the BS responsivity measurements. This ensure both a correct flat-fielding of the detectors within a TOD (they are all calibrated to see the same atmosphere) and the consistency TOD to TOD (from the normalization to our set of good detectors). The flat-field $ff$ is computed as the average of the season gain for each detector.
 	
+
+\subsection{Cuts package}
+The current cuts package is mr3 and will be used for this round of papers, it is based on the c10 version of the cuts. As a reminder, the version that was used for the last round of paper (Louis et al. and following) was c7\_v5. While the general philosophy of the cuts and relative calibration has been maintained, there were major changes to the code. 
+
+Most of the analysis has gone from time domain to frequency domain, allowing to compute the full correlation matrix at low frequency to extract the common mode, select the detectors seeing the atmosphere and computing their relative gain in a much more efficient way. This also allowed us to perform the low frequency analysis in a sliding window and averaging the results, to avoid any strong border effect on the chosen window.
+
+The thermal contamination is handled more carefully to make sure we are calibrating on the atmosphere and not thermal fluctuations. c7\_v5 made use of thermometers on the array to clean for thermal contamination. This was efficient for the lowest frequency drift but added noise at intermediate and higher frequencies. We are now using the dark detectors, computing the SVD of their signals and de-projecting the first(s) mode(s) out of the live detectors in the low frequency band. We also added a security check to discard detectors that have too much thermal contamination, based on the fraction of signal removed by the dark signal de-projection.
+
+We now recover detectors that don't have Bias Step responsivities but valid signal. We use an arbitrary average responsivity value which is then corrected by the atmospheric re-calibration factor. These detectors do not enter the common mode determination or the array overall calibration in order not to bias the results, but if they pass all the cuts criteria, they can be used for mapping. This might slightly decrease the relative calibration quality but means a 20\% increase in number of detectors going through compared to c7\_v5.
+
+Multichroic arrays require a different treatment as the atmosphere intensity varies significantly at 90, 150 and 220GHz. The low frequency analysis and calibration are split by frequency. For the cuts package, a multichroic array is essentially considered as two arrays. At 90Ghz, the atmospheric signal is actually so low that the atmospheric correction that we apply to the Bias Step responsivities for calibration (see equation \ref{eqn_relcal}) is mostly adding noise. We thus reduce the calibration factor at 90GHz to $d^{pW} = d^{DAQ} * R_{BS} * ff$.
+
+Finally, inputs like focal plane, pointing or BS responsivities have been updated and cut thresholds have been fine-tuned to each dataset.
+
 
 \subsection{Absolute calibration}
 
@@ -890,4 +905,3 @@ Note that the $C_{xy}$ here is evaluated at the point in the chain, rather than 
 \end{document}
 
 
-                                                                                     
